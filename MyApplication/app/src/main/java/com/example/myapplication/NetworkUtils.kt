@@ -1,11 +1,7 @@
 package com.example.myapplication
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
-import android.util.LruCache
-import android.widget.ImageView
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -91,63 +87,5 @@ object DataManager {
         }
         result.add(current.toString().trim())
         return result
-    }
-}
-
-class ImageDownloader {
-    private val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
-    private val cacheSize = maxMemory / 8
-    private val memoryCache = object : LruCache<String, Bitmap>(cacheSize) {
-        override fun sizeOf(key: String, bitmap: Bitmap): Int {
-            return bitmap.byteCount / 1024
-        }
-    }
-    
-    private val executor = Executors.newFixedThreadPool(4)
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    fun download(url: String, imageView: ImageView) {
-        val bitmap = getBitmapFromMemCache(url)
-        if (bitmap != null) {
-            imageView.setImageBitmap(bitmap)
-            return
-        }
-
-        // Set placeholder or clear
-        imageView.setImageBitmap(null)
-        imageView.tag = url
-
-        executor.execute {
-            try {
-                val imageUrl = URL(url)
-                val connection = imageUrl.openConnection() as HttpURLConnection
-                connection.doInput = true
-                connection.connect()
-                val input = connection.inputStream
-                val downloadedBitmap = BitmapFactory.decodeStream(input)
-                
-                if (downloadedBitmap != null) {
-                    addBitmapToMemoryCache(url, downloadedBitmap)
-                    
-                    mainHandler.post {
-                        if (imageView.tag == url) {
-                            imageView.setImageBitmap(downloadedBitmap)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun addBitmapToMemoryCache(key: String, bitmap: Bitmap) {
-        if (getBitmapFromMemCache(key) == null) {
-            memoryCache.put(key, bitmap)
-        }
-    }
-
-    private fun getBitmapFromMemCache(key: String): Bitmap? {
-        return memoryCache.get(key)
     }
 }

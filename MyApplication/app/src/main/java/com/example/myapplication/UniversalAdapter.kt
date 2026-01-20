@@ -53,9 +53,8 @@ class UniversalAdapter(
         val item = items[position]
         holder.title.text = item.title
         holder.description.text = item.shortDescription
-        
-        // Reset image and load async
-        holder.thumbnail.setImageResource(android.R.drawable.ic_menu_gallery) // Placeholder
+
+        holder.thumbnail.setImageResource(android.R.drawable.ic_menu_gallery)
         if (item.thumbnailUrl.isNotEmpty()) {
             imageDownloader.download(item.thumbnailUrl, holder.thumbnail)
         }
