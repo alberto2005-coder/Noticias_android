@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.Gallery
 import android.widget.GridView
@@ -32,13 +31,19 @@ class MainActivity : Activity() {
     }
 
     private fun setupSpinner() {
-        val viewTypes = arrayOf("ListView", "GridView", "StackView", "Gallery")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, viewTypes)
+        val viewTypes = listOf(
+            NewsItem("ListView", "Standard list view", "", "", ""),
+            NewsItem("GridView", "Grid layout (2 columns)", "", "", ""),
+            NewsItem("StackView", "Stack card view", "", "", ""),
+            NewsItem("Gallery", "Horizontal gallery", "", "", "")
+        )
+        
+        val adapter = UniversalAdapter(this, viewTypes)
         spinner.adapter = adapter
 
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                switchView(viewTypes[position])
+                switchView(viewTypes[position].title)
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -52,9 +57,9 @@ class MainActivity : Activity() {
         DataManager.fetchCsvData(targetUrl) { items ->
             if (items != null && items.isNotEmpty()) {
                 dataItems = items
-                val currentViewType = spinner.selectedItem as? String
-                if (currentViewType != null) {
-                    switchView(currentViewType)
+                val selectedItem = spinner.selectedItem as? NewsItem
+                if (selectedItem != null) {
+                    switchView(selectedItem.title)
                 }
             } else {
                 Toast.makeText(this, "Failed to load data or no data found", Toast.LENGTH_LONG).show()
@@ -64,9 +69,9 @@ class MainActivity : Activity() {
                     NewsItem("Demo Title 3", "Short Desc 3", "", "Content 3", ""),
                     NewsItem("Demo Title 4", "Short Desc 4", "", "Content 4", "")
                 )
-                 val currentViewType = spinner.selectedItem as? String
-                if (currentViewType != null) {
-                    switchView(currentViewType)
+                 val selectedItem = spinner.selectedItem as? NewsItem
+                if (selectedItem != null) {
+                    switchView(selectedItem.title)
                 }
             }
         }
@@ -102,8 +107,8 @@ class MainActivity : Activity() {
         adapterView.adapter = currentAdapter
         
         adapterView.setOnItemClickListener { _, _, position, _ ->
-            val item = dataItems[position]
-            startActivity(DetailActivity.newIntent(this, item))
+            // Pass the index instead of the item to avoid TransactionTooLargeException
+            startActivity(DetailActivity.newIntent(this, position))
         }
 
         container.addView(adapterView)

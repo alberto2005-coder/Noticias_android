@@ -10,11 +10,11 @@ import android.widget.TextView
 class DetailActivity : Activity() {
 
     companion object {
-        private const val EXTRA_ITEM = "extra_item"
+        private const val EXTRA_INDEX = "extra_index"
 
-        fun newIntent(context: Context, item: NewsItem): Intent {
+        fun newIntent(context: Context, index: Int): Intent {
             val intent = Intent(context, DetailActivity::class.java)
-            intent.putExtra(EXTRA_ITEM, item)
+            intent.putExtra(EXTRA_INDEX, index)
             return intent
         }
     }
@@ -23,7 +23,12 @@ class DetailActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
 
-        val item = intent.getSerializableExtra(EXTRA_ITEM) as? NewsItem
+        val index = intent.getIntExtra(EXTRA_INDEX, -1)
+        val item = if (index != -1 && DataManager.currentItems != null && index < DataManager.currentItems!!.size) {
+            DataManager.currentItems!![index]
+        } else {
+            null
+        }
         
         if (item != null) {
             val titleView = findViewById<TextView>(R.id.txtDetailTitle)
