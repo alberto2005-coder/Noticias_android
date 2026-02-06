@@ -1,116 +1,246 @@
 package com.example.myapplication
 
-import android.app.Activity
+import android.app.AlertDialog
+import android.content.Context
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
-import android.widget.AdapterView
-import android.widget.FrameLayout
-import android.widget.Gallery
-import android.widget.GridView
-import android.widget.ListView
-import android.widget.Spinner
-import android.widget.StackView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
+import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.ViewModelProvider
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import android.os.Build
+import android.Manifest
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.myapplication.data.AppDatabase
+import com.example.myapplication.data.NewsRepository
+import com.example.myapplication.ui.NewsDetailFragment
+import com.example.myapplication.ui.NewsListFragment
+import com.example.myapplication.ui.NewsViewModel
+import com.example.myapplication.ui.NewsViewModelFactory
+import java.util.concurrent.TimeUnit
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
+    
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            triggerNotificationWorker()
+        } else {
+            Toast.makeText(this, "Notifications permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
 
-    private lateinit var container: FrameLayout
-    private lateinit var spinner: Spinner
-    private var dataItems: List<NewsItem> = emptyList()
-    private var currentAdapter: UniversalAdapter? = null
+    private lateinit var viewModel: NewsViewModel
+    private var isTwoPane: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        container = findViewById(R.id.container)
-        spinner = findViewById(R.id.spinnerViewType)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
-        setupSpinner()
-        loadData()
-    }
+        // Init Dependencies
+        val database = AppDatabase.getDatabase(this)
+        val repository = NewsRepository(database.newsDao())
+        val factory = NewsViewModelFactory(repository)
+        viewModel = ViewModelProvider(this, factory).get(NewsViewModel::class.java)
 
-    private fun setupSpinner() {
-        val viewTypes = listOf(
-            NewsItem("ListView", "Standard list view", "", "", ""),
-            NewsItem("GridView", "Grid layout (2 columns)", "", "", ""),
-            NewsItem("StackView", "Stack card view", "", "", ""),
-            NewsItem("Gallery", "Horizontal gallery", "", "", "")
-        )
-        
-        val adapter = UniversalAdapter(this, viewTypes)
-        spinner.adapter = adapter
-
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                switchView(viewTypes[position].title)
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        // Check for TwoPane (Tablet)
+        if (findViewById<View>(R.id.fragment_container_detail) != null) {
+            isTwoPane = true
         }
-    }
 
-    private fun loadData() {
-        val url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdbUChP675A-YQIPd2-5K3jR9zYd2w2a7U_GzGgL0sH2gYqW7wM8N1iP-x/pub?output=csv"
-        val targetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6mL-J0ec_25uVCXUgdhIxyiGa1ctbtKKxyGo5aWhV3n-ySyO00ecSicMuiohkKI2pqikIHUZAhqNz/pub?output=csv"
-
-        DataManager.fetchCsvData(targetUrl) { items ->
-            if (items != null && items.isNotEmpty()) {
-                dataItems = items
-                val selectedItem = spinner.selectedItem as? NewsItem
-                if (selectedItem != null) {
-                    switchView(selectedItem.title)
-                }
+        if (savedInstanceState == null) {
+            val listFragment = NewsListFragment()
+            if (isTwoPane) {
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container_list, listFragment)
+                    .commit()
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container_detail, NewsDetailFragment())
+                    .commit()
             } else {
-                Toast.makeText(this, "Failed to load data or no data found", Toast.LENGTH_LONG).show()
-                dataItems = listOf(
-                    NewsItem("Demo Title 1", "Short Desc 1", "", "Content 1", ""),
-                    NewsItem("Demo Title 2", "Short Desc 2", "", "Content 2", ""),
-                    NewsItem("Demo Title 3", "Short Desc 3", "", "Content 3", ""),
-                    NewsItem("Demo Title 4", "Short Desc 4", "", "Content 4", "")
-                )
-                 val selectedItem = spinner.selectedItem as? NewsItem
-                if (selectedItem != null) {
-                    switchView(selectedItem.title)
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, listFragment)
+                    .commit()
+            }
+        }
+
+        // Observe Selection to handle navigation
+        viewModel.selectedNews.observe(this) { news ->
+            if (news != null) {
+                if (!isTwoPane) {
+                    supportFragmentManager.beginTransaction()
+                        .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out, android.R.anim.fade_in, android.R.anim.fade_out)
+                        .replace(R.id.fragment_container, NewsDetailFragment())
+                        .addToBackStack(null)
+                        .commit()
                 }
             }
         }
+        
+        viewModel.refresh()
+        setupWorker()
     }
 
-    private fun switchView(type: String) {
-        container.removeAllViews()
-
-        val adapterView: AdapterView<UniversalAdapter> = when (type) {
-            "ListView" -> ListView(this)
-            "GridView" -> {
-                val grid = GridView(this)
-                grid.numColumns = 2
-                grid.verticalSpacing = 16
-                grid.horizontalSpacing = 16
-                grid
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        val searchItem = menu?.findItem(R.id.action_search)
+        val searchView = searchItem?.actionView as? SearchView
+        searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                if (query != null) viewModel.search(query)
+                return false
             }
-            "StackView" -> StackView(this)
-            "Gallery" -> {
-                val gallery = Gallery(this)
-                gallery.setSpacing(16)
-                gallery
+            override fun onQueryTextChange(newText: String?): Boolean {
+                if (newText != null) viewModel.search(newText)
+                return true
             }
-            else -> ListView(this)
-        } as AdapterView<UniversalAdapter>
+        })
+        return true
+    }
 
-        adapterView.layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
-        )
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_sort_date -> {
+                viewModel.loadNewsSortedByDate()
+                true
+            }
+            R.id.action_sort_importance -> {
+                viewModel.loadNewsSortedByImportance()
+                true
+            }
+            R.id.action_benchmark -> {
+                runBenchmark()
+                true
+            }
+            R.id.action_test_notification -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                        triggerNotificationWorker()
+                    } else {
+                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                } else {
+                    triggerNotificationWorker()
+                }
+                true
+            }
+            R.id.action_settings -> {
+                showSettingsDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
 
-        currentAdapter = UniversalAdapter(this, dataItems)
-        adapterView.adapter = currentAdapter
-        
-        adapterView.setOnItemClickListener { _, _, position, _ ->
-            // Pass the index instead of the item to avoid TransactionTooLargeException
-            startActivity(DetailActivity.newIntent(this, position))
+    private fun runBenchmark() {
+        AsyncBenchmark.showBenchmarkDialog(this)
+    }
+
+    private fun showSettingsDialog() {
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val enabled = prefs.getBoolean("notifications_enabled", true)
+        val interval = prefs.getLong("notification_interval", 15) // Minutes
+
+        val intervals = arrayOf("15 Min", "30 Min", "60 Min")
+        val intervalValues = longArrayOf(15, 30, 60)
+        var selectedIntervalIndex = 0
+        when (interval) {
+            30L -> selectedIntervalIndex = 1
+            60L -> selectedIntervalIndex = 2
         }
 
-        container.addView(adapterView)
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Settings")
+        
+        // Custom simple layout or multi-choice? Simple for now.
+        // We'll show a toggle and a list? Use checks.
+        // Actually, just a simple "Enable Notifications" checkbox and a separate dialog for interval? 
+        // Or a multi-choice single dialog.
+        // Let's make it simpler: Toggle Notifications. If enabled, ask interval.
+        
+        // Let's use two dialogs or one custom one. Custom view is better. 
+        // Or standard setMultiChoiceItems. 
+        // Let's stick to "Notifications: On/Off" for simplicity and "Interval" sub-menu if needed.
+        // Or just "Configure Notifications".
+        
+        builder.setMultiChoiceItems(
+            arrayOf("Enable Notifications"), 
+            booleanArrayOf(enabled)
+        ) { _, _, isChecked ->
+            prefs.edit().putBoolean("notifications_enabled", isChecked).apply()
+            setupWorker()
+        }
+        
+        builder.setPositiveButton("Set Interval") { _, _ ->
+             // Show interval picker
+             AlertDialog.Builder(this)
+                 .setTitle("Select Interval")
+                 .setSingleChoiceItems(intervals, selectedIntervalIndex) { d, which ->
+                     prefs.edit().putLong("notification_interval", intervalValues[which]).apply()
+                     setupWorker()
+                     d.dismiss()
+                 }
+                 .show()
+        }
+
+        builder.setNeutralButton("Language") { _, _ ->
+            showLanguageSelection()
+        }
+        
+        builder.setNegativeButton("Close", null)
+        builder.show()
+    }
+
+    private fun showLanguageSelection() {
+        val languages = arrayOf("Español", "English", "Français")
+        val codes = arrayOf("es", "en", "fr")
+        
+        AlertDialog.Builder(this)
+            .setTitle("Select Language")
+            .setItems(languages) { _, which ->
+                val code = codes[which]
+                val appLocale = androidx.core.os.LocaleListCompat.forLanguageTags(code)
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
+            }
+            .show()
+    }
+
+    private fun setupWorker() {
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val enabled = prefs.getBoolean("notifications_enabled", true)
+        val interval = prefs.getLong("notification_interval", 15)
+
+        val workManager = WorkManager.getInstance(this)
+        
+        if (enabled) {
+            val workRequest = PeriodicWorkRequestBuilder<NewsWorker>(interval, TimeUnit.MINUTES)
+                .build()
+            
+            workManager.enqueueUniquePeriodicWork(
+                "NewsUpdateWork",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                workRequest
+            )
+        } else {
+            workManager.cancelUniqueWork("NewsUpdateWork")
+        }
+    }
+
+    private fun triggerNotificationWorker() {
+        val workRequest = androidx.work.OneTimeWorkRequest.Builder(com.example.myapplication.NewsWorker::class.java).build()
+        androidx.work.WorkManager.getInstance(this).enqueue(workRequest)
+        Toast.makeText(this, "Notification triggered", Toast.LENGTH_SHORT).show()
     }
 }

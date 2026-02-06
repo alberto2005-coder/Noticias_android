@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application android:allowBackup="true" android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.MyApplication">
         <activity android:name=".MainActivity" android:exported="true" android:label="@string/app_name" android:theme="@style/Theme.MyApplication">
@@ -12,11 +13,33 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".DetailActivity"
+
+        <receiver
+            android:name=".ClockWidget"
             android:exported="false"
-            android:label="News Detail"
-            android:parentActivityName=".MainActivity" />
+            android:label="Reloj">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_clock" />
+        </receiver>
+
+        <receiver
+            android:name=".NewsWidget"
+            android:exported="false"
+            android:label="Noticia">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_news" />
+        </receiver>
+
 
     </application>
 

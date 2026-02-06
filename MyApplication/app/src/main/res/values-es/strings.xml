@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Mis Noticias</string>
+    <string name="search_hint">Buscar noticias...</string>
+    <string name="sort_date">Ordenar por Fecha</string>
+    <string name="sort_importance">Ordenar por Importancia</string>
+    <string name="benchmark">Benchmark Asíncrono</string>
+    <string name="notification_channel_name">Actualizaciones de Noticias</string>
+    <string name="new_news_available">¡Nuevas noticias disponibles!</string>
+    <string name="loading">Cargando...</string>
+    <string name="error_loading">Error cargando noticias</string>
+    <string name="detail_title">Detalles</string>
+</resources>

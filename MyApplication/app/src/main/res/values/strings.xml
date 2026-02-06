@@ -1,3 +1,12 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">My News App</string>
+    <string name="search_hint">Search news...</string>
+    <string name="sort_date">Sort by Date</string>
+    <string name="sort_importance">Sort by Importance</string>
+    <string name="benchmark">Async Benchmark</string>
+    <string name="notification_channel_name">News Updates</string>
+    <string name="new_news_available">New news available!</string>
+    <string name="loading">Loading...</string>
+    <string name="error_loading">Error loading news</string>
+    <string name="detail_title">Details</string>
 </resources>
