@@ -1,0 +1,16 @@
+# Android
+MyApplication/.gradle/
+MyApplication/.idea/
+MyApplication/build/
+MyApplication/*.iml
+MyApplication/local.properties
+
+# Kotlin
+MyApplication/.kotlin/
+
+# VS Code
+.vscode/
+
+# System Files
+.DS_Store
+Thumbs.db
