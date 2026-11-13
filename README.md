@@ -1,115 +1,180 @@
-# Android News App - "Noticias"
+# Noticias — app Android
 
-## 📑 Índice / Index
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.x-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Room](https://img.shields.io/badge/Room-offline--first-3DDC84?logo=android&logoColor=white)](https://developer.android.com/training/data-storage/room)
+[![GPL-3.0](https://img.shields.io/badge/Licencia-GPL--3.0-blue)](LICENSE)
 
-- [Español (Spanish)](#español)
-    - [Características](#características)
-    - [Stack Tecnológico](#stack-tecnológico)
-    - [Estructura del Proyecto](#estructura-del-proyecto)
-    - [Configuración](#configuración)
-    - [Cómo Ejecutar](#cómo-ejecutar)
-- [English](#english)
-    - [Features](#features)
-    - [Tech Stack](#tech-stack)
-    - [Project Structure](#project-structure)
-    - [Configuration](#configuration)
-    - [How to Run](#how-to-run)
+[Español](#español) · [English](#english)
 
 ---
 
-<a name="español"></a>
-## 🇪🇸 Español
+## Español
 
-Una aplicación Android moderna construida con Kotlin y Jetpack Compose que obtiene datos de noticias de Google Sheets, los persiste localmente usando Room y proporciona actualizaciones periódicas en segundo plano mediante WorkManager.
+### Índice
+
+- [Descripción](#descripción)
+- [Características](#características)
+- [Stack tecnológico](#stack-tecnológico)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Configuración](#configuración)
+- [Compilación y ejecución](#compilación-y-ejecución)
+- [Limitaciones](#limitaciones)
+- [Licencia](#licencia)
+
+### Descripción
+
+Aplicación Android de noticias escrita en **Kotlin** con **Jetpack Compose** y **Material 3**. Descarga un CSV publicado desde **Google Sheets**, lo guarda en **Room** para poder leerlo sin conexión y lo mantiene al día con **WorkManager**.
 
 ### Características
-- **Contenido Dinámico**: Obtiene noticias en tiempo real desde una salida CSV de Google Sheets.
-- **Soporte Multilingüe**: Soporta noticias en español, inglés y francés según el idioma del dispositivo o la preferencia del usuario.
-- **Persistencia Local**: Utiliza **Room Database** para almacenar noticias y permitit su lectura offline.
-- **Actualizaciones en Segundo Plano**: Implementa **WorkManager** para la sincronización periódica en segundo plano.
-- **UI Responsiva**: Construida con **Jetpack Compose** y **Material 3**, con un diseño de doble panel para tablets.
-- **Búsqueda y Filtro**: Permite buscar entre las noticias y ordenar por fecha o importancia.
-- **Benchmark Asíncrono**: Incluye una herramienta de benchmark integrada para probar la respuesta de la UI durante procesos pesados.
 
-### Stack Tecnológico
-- **Lenguaje**: Kotlin
-- **Framework de UI**: Jetpack Compose / Material 3
-- **Arquitectura**: MVVM (Model-View-ViewModel)
-- **Base de Datos**: Room
-- **Tareas en Segundo Plano**: WorkManager
-- **Carga de Imágenes**: Coil
-- **Red**: HttpURLConnection (Parser CSV personalizado)
+- **Contenido dinámico**: lee las noticias de una hoja de cálculo publicada como CSV.
+- **Multilingüe**: textos de la interfaz en español, inglés y francés según el idioma del dispositivo.
+- **Persistencia local** con Room para consultar las noticias offline.
+- **Sincronización en segundo plano** mediante WorkManager.
+- **UI adaptativa** con diseño de doble panel en tablets.
+- **Búsqueda y orden**: por fecha o por importancia.
+- **Benchmark asíncrono** para medir la respuesta de la interfaz con cargas pesadas.
 
-### Estructura del Proyecto
+### Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Lenguaje | Kotlin |
+| UI | Jetpack Compose, Material 3 |
+| Arquitectura | MVVM |
+| Base de datos | Room |
+| Tareas en segundo plano | WorkManager |
+| Imágenes | Coil |
+| Red | `HttpURLConnection` y parser CSV propio |
+
+### Estructura del proyecto
+
 ```text
-MyApplication/
-├── app/
-│   ├── src/main/java/com/example/myapplication/
-│   │   ├── data/          # Entidades Room, DAOs y Repositorios
-│   │   ├── ui/            # Pantallas Compose, ViewModels y lógica de UI
-│   │   ├── MainActivity   # Punto de entrada principal con lógica de Fragmentos/Views
-│   │   └── NewsWorker     # Implementación de WorkManager para notificaciones
-│   └── res/               # Recursos de Android (layouts, strings, drawables)
-├── build.gradle.kts       # Configuración de construcción a nivel de proyecto
-└── settings.gradle.kts    # Configuración de módulos
+Noticias_android/
+├── MyApplication/
+│   ├── app/src/main/java/com/example/myapplication/
+│   │   ├── MainActivity.kt         # Entrada y navegación
+│   │   ├── DetailActivity.kt       # Detalle de la noticia
+│   │   ├── NewsItem.kt             # Modelo de noticia
+│   │   ├── NewsWorker.kt           # Sincronización con WorkManager
+│   │   ├── data/                   # Entidad, DAO, base de datos y repositorio
+│   │   ├── ui/                     # Pantallas Compose, adaptadores y ViewModel
+│   │   └── AsyncBenchmark.kt       # Herramienta de medición
+│   └── app/src/main/res/           # Recursos y temas
+├── LICENSE
+└── README.md
 ```
 
 ### Configuración
-La aplicación utiliza Google Sheets como fuente de datos principal. Las URLs están definidas en `NewsRepository.kt`.
 
-### Cómo Ejecutar
-1. Clona el repositorio.
-2. Abre el proyecto en **Android Studio (Ladybug o posterior)**.
-3. Sincroniza el proyecto con los archivos Gradle.
-4. Ejecuta en un emulador o dispositivo físico (API 24+).
+La fuente de datos son hojas de Google publicadas como CSV. Las URLs están en `data/NewsRepository.kt`: sustitúyelas por las de tu propia hoja si quieres usar contenido distinto.
+
+Para publicar una hoja: **Archivo → Compartir → Publicar en la web → CSV**. Comprueba que el CSV tenga una fila de cabecera y que las columnas coincidan con las que espera el parser.
+
+### Compilación y ejecución
+
+1. Abre `MyApplication/` en **Android Studio Ladybug** o posterior.
+2. Sincroniza Gradle.
+3. Ejecuta en un emulador o dispositivo con **API 24 o superior**.
+
+```bash
+cd MyApplication
+./gradlew assembleDebug        # Windows: gradlew.bat assembleDebug
+```
+
+La APK de depuración queda en `app/build/outputs/apk/debug/`.
+
+### Limitaciones
+
+Es una **demo técnica**: no hay backend propio, autenticación ni moderación de contenido, y depende de que la hoja publicada siga accesible. Google puede limitar o cambiar el formato de las hojas publicadas, así que para producción conviene una API con caché y control de errores.
+
+### Licencia
+
+**GNU General Public License v3.0 (GPL-3.0)** — consulta [LICENSE](LICENSE).
 
 ---
 
-<a name="english"></a>
-## 🇺🇸 English
+## English
 
-A modern Android application built with Kotlin and Jetpack Compose that fetches news data from Google Sheets, persists it locally using Room, and provides periodic background updates using WorkManager.
+### Table of contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
+- [Configuration](#configuration)
+- [Build and run](#build-and-run)
+- [Limitations](#limitations)
+- [License](#license)
+
+### Overview
+
+An Android news app written in **Kotlin** with **Jetpack Compose** and **Material 3**. It downloads a CSV published from **Google Sheets**, stores it in **Room** for offline reading and keeps it fresh with **WorkManager**.
 
 ### Features
-- **Dynamic Content**: Fetches news in real-time from a Google Sheets CSV output.
-- **Multilingual Support**: Supports news in Spanish, English, and French based on device locale or user preference.
-- **Local Persistence**: Uses **Room Database** to store news for offline viewing.
-- **Background Updates**: Implements **WorkManager** for periodic background synchronization.
-- **Responsive UI**: Built with **Jetpack Compose** and **Material 3**, featuring a two-pane layout for tablets.
-- **Search & Sort**: Search through news and sort by date or importance.
-- **Asynchronous Benchmark**: Includes a built-in benchmark tool to test UI responsiveness during heavy processing.
 
-### Tech Stack
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose / Material 3
-- **Architecture**: MVVM (Model-View-ViewModel)
-- **Database**: Room
-- **Background Tasks**: WorkManager
-- **Image Loading**: Coil
-- **Network**: HttpURLConnection (Custom CSV Parser)
+- **Dynamic content**: reads news from a spreadsheet published as CSV.
+- **Multilingual**: UI strings in Spanish, English and French following the device locale.
+- **Local persistence** with Room for offline reading.
+- **Background sync** through WorkManager.
+- **Adaptive UI** with a two-pane layout on tablets.
+- **Search and sort**: by date or importance.
+- **Async benchmark** to measure UI responsiveness under heavy work.
 
-### Project Structure
+### Tech stack
+
+| Layer | Technology |
+|---|---|
+| Language | Kotlin |
+| UI | Jetpack Compose, Material 3 |
+| Architecture | MVVM |
+| Database | Room |
+| Background work | WorkManager |
+| Images | Coil |
+| Network | `HttpURLConnection` and a custom CSV parser |
+
+### Project structure
+
 ```text
-MyApplication/
-├── app/
-│   ├── src/main/java/com/example/myapplication/
-│   │   ├── data/          # Room entities, DAOs, and Repositories
-│   │   ├── ui/            # Compose screens, ViewModels, and UI logic
-│   │   ├── MainActivity   # Main entry point with Fragment/View logic
-│   │   └── NewsWorker     # WorkManager implementation for notifications
-│   └── res/               # Android resources (layouts, strings, drawables)
-├── build.gradle.kts       # Project-level build configuration
-└── settings.gradle.kts    # Module settings
+Noticias_android/
+├── MyApplication/
+│   ├── app/src/main/java/com/example/myapplication/
+│   │   ├── MainActivity.kt         # Entry point and navigation
+│   │   ├── DetailActivity.kt       # News detail
+│   │   ├── NewsItem.kt             # News model
+│   │   ├── NewsWorker.kt           # WorkManager sync
+│   │   ├── data/                   # Entity, DAO, database and repository
+│   │   ├── ui/                     # Compose screens, adapter and ViewModel
+│   │   └── AsyncBenchmark.kt       # Measurement tool
+│   └── app/src/main/res/           # Resources and themes
+├── LICENSE
+└── README.md
 ```
 
 ### Configuration
-The app currently uses Google Sheets as its primary data source. The URLs are defined in `NewsRepository.kt`.
 
-### How to Run
-1. Clone the repository.
-2. Open the project in **Android Studio (Ladybug or newer)**.
-3. Sync project with Gradle files.
-4. Run on an Emulator or Physical Device (API 24+).
+The data source is Google Sheets published as CSV. The URLs live in `data/NewsRepository.kt`: replace them with your own sheet if you want different content.
 
----
-*Created as part of a technical demonstration for Android Development.*
+To publish a sheet: **File → Share → Publish to the web → CSV**. Make sure the CSV has a header row and that its columns match what the parser expects.
+
+### Build and run
+
+1. Open `MyApplication/` in **Android Studio Ladybug** or newer.
+2. Sync Gradle.
+3. Run on an emulator or device with **API 24 or later**.
+
+```bash
+cd MyApplication
+./gradlew assembleDebug        # Windows: gradlew.bat assembleDebug
+```
+
+The debug APK lands in `app/build/outputs/apk/debug/`.
+
+### Limitations
+
+This is a **technical demo**: there is no backend, authentication or content moderation, and it relies on the published sheet staying reachable. Google may rate-limit or change the published format, so production use should sit behind an API with caching and error handling.
+
+### License
+
+**GNU General Public License v3.0 (GPL-3.0)** — see [LICENSE](LICENSE).
